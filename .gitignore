@@ -33,3 +33,6 @@ cypress/screenshots/
 
 # Mac system files
 Icon?
+
+# Project context (do not track in git)
+context.md
