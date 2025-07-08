@@ -27,6 +27,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <nav className="w-full px-4 py-3 bg-gray-100 border-b flex items-center justify-between">
+          <span className="font-bold text-lg">Steam Achievements Tracker</span>
+          <a href="/auth" className="text-blue-600 hover:underline">Login / Register</a>
+        </nav>
         {children}
       </body>
     </html>
