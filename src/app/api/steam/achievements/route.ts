@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface SteamAchievementResponse {
+  apiname: string;
+  description?: string;
+  achieved: number;
+  icon?: string;
+  unlocktime?: number;
+}
+
+interface SteamAchievementsApiResponse {
+  playerstats: {
+    achievements?: SteamAchievementResponse[];
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -19,10 +33,10 @@ export async function GET(request: NextRequest) {
       throw new Error(`Steam API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: SteamAchievementsApiResponse = await response.json();
     
     // Transform the data to match our UI structure
-    const achievements = data.playerstats.achievements?.map((achievement: any) => ({
+    const achievements = data.playerstats.achievements?.map((achievement: SteamAchievementResponse) => ({
       id: achievement.apiname,
       name: achievement.apiname.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
       description: achievement.description || '',

@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface SteamGameResponse {
+  appid: number;
+  name: string;
+  playtime_forever?: number;
+  rtime_last_played?: number;
+}
+
+interface SteamApiResponse {
+  response: {
+    games?: SteamGameResponse[];
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get Steam ID from query params (we'll need to get this from user auth later)
@@ -19,10 +32,10 @@ export async function GET(request: NextRequest) {
       throw new Error(`Steam API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: SteamApiResponse = await response.json();
     
     // Transform the data to match our UI structure
-    const games = data.response.games?.map((game: any) => ({
+    const games = data.response.games?.map((game: SteamGameResponse) => ({
       id: game.appid,
       name: game.name,
       image: `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`,

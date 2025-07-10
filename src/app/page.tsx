@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import { fetchSteamGames, fetchSteamAchievements, fetchSteamProfile, type SteamGame, type SteamAchievement, type SteamProfile } from '@/lib/steamApi';
 
 export default function Home() {
@@ -128,7 +129,13 @@ export default function Home() {
         {profile && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <div className="flex items-center space-x-4">
-              <img src={profile.avatar} alt={profile.username} className="w-16 h-16 rounded-full" />
+              <Image 
+                src={profile.avatar} 
+                alt={profile.username} 
+                width={64}
+                height={64}
+                className="rounded-full"
+              />
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">{profile.username}</h2>
                 <p className="text-gray-600">Steam ID: {profile.steamId}</p>
@@ -195,7 +202,7 @@ function GamesView({
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">No Games Found</h2>
-        <p className="text-gray-600">This Steam account doesn't have any games with achievements, or the profile is private.</p>
+        <p className="text-gray-600">This Steam account doesn&apos;t have any games with achievements, or the profile is private.</p>
       </div>
     );
   }
@@ -241,10 +248,12 @@ function GamesView({
             }`}
           >
             <div className="flex items-center space-x-4">
-              <img 
+              <Image 
                 src={game.image} 
                 alt={game.name}
-                className="w-16 h-16 rounded-lg object-cover"
+                width={64}
+                height={64}
+                className="rounded-lg object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMiA0OEw0OCAzMkwzMiAxNkwxNiAzMkwzMiA0OFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
@@ -305,7 +314,7 @@ function AchievementsView({
       {achievements.length === 0 ? (
         <div className="text-center py-12">
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No Achievements Found</h3>
-          <p className="text-gray-600">This game doesn't have any achievements, or they're not available.</p>
+          <p className="text-gray-600">This game doesn&apos;t have any achievements, or they&apos;re not available.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
