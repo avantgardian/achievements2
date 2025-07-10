@@ -176,7 +176,7 @@ export default function Home() {
               <span className="text-white font-bold">AchievementTracker</span>
             </div>
             <div className="text-gray-400 text-sm">
-              © 2024 AchievementTracker. Built for gamers, by gamers.
+              © 2025 AchievementTracker. Built for gamers, by gamers.
             </div>
           </div>
         </div>
