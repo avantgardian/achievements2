@@ -1,11 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { fetchSteamGames, fetchSteamAchievements, fetchSteamProfile, type SteamGame, type SteamAchievement, type SteamProfile } from '@/lib/steamApi';
+import { useUser } from '@/lib/userContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function GamesPage() {
-  const [steamId, setSteamId] = useState<string>('');
+  const { user, steamId, signOut } = useUser();
   const [games, setGames] = useState<SteamGame[]>([]);
   const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
   const [profile, setProfile] = useState<SteamProfile | null>(null);
@@ -13,6 +15,13 @@ export default function GamesPage() {
   const [view, setView] = useState<'games' | 'achievements'>('games');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load Steam data when component mounts and steamId is available
+  useEffect(() => {
+    if (steamId) {
+      loadSteamData(steamId);
+    }
+  }, [steamId]);
 
   const loadSteamData = async (id: string) => {
     setLoading(true);
@@ -55,151 +64,121 @@ export default function GamesPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (steamId.trim()) {
-      loadSteamData(steamId.trim());
-    }
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-      {/* Navigation */}
-      <nav className="relative z-50 bg-black/20 backdrop-blur-sm border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            {/* Logo and Menu */}
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">🎮</span>
-                </div>
-                <span className="text-white font-bold text-xl">AchievementTracker</span>
-              </Link>
-              
-              {/* Menu Items */}
-              <div className="hidden md:flex space-x-6">
-                <Link 
-                  href="/games" 
-                  className="text-white font-medium border-b-2 border-purple-500"
-                >
-                  My Games
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+        {/* Navigation */}
+        <nav className="relative z-50 bg-black/20 backdrop-blur-sm border-b border-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+              {/* Logo and Menu */}
+              <div className="flex items-center space-x-8">
+                <Link href="/" className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">🎮</span>
+                  </div>
+                  <span className="text-white font-bold text-xl">AchievementTracker</span>
                 </Link>
-                {/* Future menu items will go here */}
+                
+                {/* Menu Items */}
+                <div className="hidden md:flex space-x-6">
+                  <Link 
+                    href="/games" 
+                    className="text-white font-medium border-b-2 border-purple-500"
+                  >
+                    My Games
+                  </Link>
+                  {/* Future menu items will go here */}
+                </div>
+              </div>
+
+              {/* User Menu */}
+              <div className="flex items-center space-x-4">
+                {user && (
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <p className="text-white text-sm font-medium">{user.user_metadata?.username || 'Steam User'}</p>
+                      <p className="text-gray-400 text-xs">Steam ID: {steamId}</p>
+                    </div>
+                    <button
+                      onClick={handleSignOut}
+                      className="text-gray-300 hover:text-white transition-colors duration-200 font-medium"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Auth Links */}
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/auth" 
-                className="text-gray-300 hover:text-white transition-colors duration-200 font-medium"
-              >
-                Login
-              </Link>
-              <Link 
-                href="/auth" 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
-              >
-                Sign Up
-              </Link>
-            </div>
           </div>
+        </nav>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Profile Info */}
+          {profile && (
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6 mb-8">
+              <div className="flex items-center space-x-4">
+                <Image 
+                  src={profile.avatar} 
+                  alt={profile.username} 
+                  width={64}
+                  height={64}
+                  className="rounded-full"
+                />
+                <div>
+                  <h2 className="text-xl font-semibold text-white">{profile.username}</h2>
+                  <p className="text-gray-400">Steam ID: {profile.steamId}</p>
+                  {profile.realName && <p className="text-gray-400">Real Name: {profile.realName}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              <p className="mt-2 text-gray-400">Loading Steam data...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-900/50 backdrop-blur-sm rounded-xl shadow-lg border border-red-700 p-6 mb-8">
+              <div className="flex items-center space-x-3">
+                <svg className="h-6 w-6 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className="text-red-400">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && profile && (
+            <>
+              {view === 'games' ? (
+                <GamesView 
+                  games={games} 
+                  onGameSelect={loadAchievements} 
+                  selectedGame={selectedGame} 
+                />
+              ) : (
+                <AchievementsView 
+                  selectedGame={selectedGame} 
+                  achievements={achievements}
+                  onBack={() => setView('games')}
+                />
+              )}
+            </>
+          )}
         </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Steam ID Input */}
-        {!profile && (
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-8 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Enter Your Steam ID</h2>
-            <form onSubmit={handleSubmit} className="flex gap-4">
-              <input
-                type="text"
-                value={steamId}
-                onChange={(e) => setSteamId(e.target.value)}
-                placeholder="Enter your Steam ID (e.g., 76561198000000000)"
-                className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                disabled={loading}
-              />
-              <button
-                type="submit"
-                disabled={loading || !steamId.trim()}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
-              >
-                {loading ? 'Loading...' : 'Load Games'}
-              </button>
-            </form>
-            {error && (
-              <p className="text-red-400 mt-2">{error}</p>
-            )}
-            <p className="text-sm text-gray-400 mt-2">
-              Find your Steam ID at <a href="https://steamidfinder.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">steamidfinder.com</a>
-            </p>
-          </div>
-        )}
-
-        {/* Profile Info */}
-        {profile && (
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6 mb-8">
-            <div className="flex items-center space-x-4">
-              <Image 
-                src={profile.avatar} 
-                alt={profile.username} 
-                width={64}
-                height={64}
-                className="rounded-full"
-              />
-              <div>
-                <h2 className="text-xl font-semibold text-white">{profile.username}</h2>
-                <p className="text-gray-400">Steam ID: {profile.steamId}</p>
-                {profile.realName && <p className="text-gray-400">Real Name: {profile.realName}</p>}
-              </div>
-              <button
-                onClick={() => {
-                  setProfile(null);
-                  setGames([]);
-                  setSelectedGame(null);
-                  setAchievements([]);
-                  setSteamId('');
-                  setError(null);
-                }}
-                className="ml-auto px-4 py-2 text-gray-400 hover:text-white transition-colors duration-200"
-              >
-                Change Steam ID
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-            <p className="mt-2 text-gray-400">Loading Steam data...</p>
-          </div>
-        )}
-
-        {/* Content */}
-        {!loading && profile && (
-          <>
-            {view === 'games' ? (
-              <GamesView 
-                games={games} 
-                onGameSelect={loadAchievements} 
-                selectedGame={selectedGame} 
-              />
-            ) : (
-              <AchievementsView 
-                selectedGame={selectedGame} 
-                achievements={achievements}
-                onBack={() => setView('games')}
-              />
-            )}
-          </>
-        )}
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
 
