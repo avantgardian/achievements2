@@ -28,6 +28,12 @@ pnpm-debug.log*
 cypress/videos/
 cypress/screenshots/
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+*.trace
+
 # Vercel
 .vercel/
 
