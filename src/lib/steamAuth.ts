@@ -13,26 +13,54 @@ export interface AuthResult {
   error: Error | null;
 }
 
-// Verify Steam ID and get profile data
-export async function verifySteamId(steamId: string): Promise<SteamAuthUser | null> {
+// Steam OpenID configuration
+const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login';
+
+// Generate Steam OpenID login URL
+export function generateSteamLoginUrl(returnUrl: string): string {
+  const params = new URLSearchParams({
+    'openid.ns': 'http://specs.openid.net/auth/2.0',
+    'openid.mode': 'checkid_setup',
+    'openid.return_to': returnUrl,
+    'openid.realm': `${window.location.origin}`,
+    'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+    'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
+  });
+
+  return `${STEAM_OPENID_URL}?${params.toString()}`;
+}
+
+// Verify Steam OpenID response
+export async function verifySteamOpenIDResponse(searchParams: URLSearchParams): Promise<string | null> {
   try {
-    const response = await fetch('/api/auth/steam', {
+    // Add required parameters for verification
+    const verifyParams = new URLSearchParams(searchParams);
+    verifyParams.set('openid.mode', 'check_authentication');
+
+    const response = await fetch(STEAM_OPENID_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({ steamId }),
+      body: verifyParams.toString(),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to verify Steam ID');
+    const result = await response.text();
+    
+    if (result.includes('is_valid:true')) {
+      // Extract Steam ID from the response
+      const claimedId = searchParams.get('openid.claimed_id');
+      if (claimedId) {
+        const steamIdMatch = claimedId.match(/\/id\/([^\/]+)/);
+        if (steamIdMatch) {
+          return steamIdMatch[1];
+        }
+      }
     }
-
-    const data = await response.json();
-    return data.profile || null;
+    
+    return null;
   } catch (error) {
-    console.error('Error verifying Steam ID:', error);
+    console.error('Error verifying Steam OpenID response:', error);
     return null;
   }
 }
@@ -105,13 +133,26 @@ function generateSecurePassword(steamId: string): string {
   return `steam_${steamId}_${timestamp}_${randomString}`;
 }
 
-// Sign in with Steam ID (this would be called after Steam authentication)
-export async function signInWithSteamId(steamId: string): Promise<AuthResult> {
+// Sign in with Steam OAuth
+export async function signInWithSteam(): Promise<void> {
+  const returnUrl = `${window.location.origin}/auth/callback`;
+  const steamLoginUrl = generateSteamLoginUrl(returnUrl);
+  window.location.href = steamLoginUrl;
+}
+
+// Handle Steam OAuth callback
+export async function handleSteamCallback(searchParams: URLSearchParams): Promise<AuthResult> {
   try {
-    // Verify Steam ID and get profile
-    const profile = await verifySteamId(steamId);
+    // Verify the OpenID response
+    const steamId = await verifySteamOpenIDResponse(searchParams);
+    if (!steamId) {
+      return { user: null, error: new Error('Failed to verify Steam authentication') };
+    }
+
+    // Get Steam profile
+    const profile = await getSteamProfile(steamId);
     if (!profile) {
-      return { user: null, error: new Error('Failed to verify Steam ID') };
+      return { user: null, error: new Error('Failed to fetch Steam profile') };
     }
 
     // Create or get user
@@ -132,7 +173,7 @@ export async function signInWithSteamId(steamId: string): Promise<AuthResult> {
 
     return { user: session?.user || user, error: null };
   } catch (error) {
-    console.error('Error signing in with Steam ID:', error);
+    console.error('Error handling Steam callback:', error);
     return { user: null, error: error as Error };
   }
 }
